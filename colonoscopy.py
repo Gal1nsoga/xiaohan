@@ -6,6 +6,7 @@ import streamlit as st
 import joblib
 import pickle
 
+
 # main function
 # 设置网页名称
 st.set_page_config(page_title='肠镜检查依从性评估工具')
@@ -26,11 +27,25 @@ uploaded_file = st.file_uploader("请上传包含特定信息数据的表格文�
 
 # 判断用户是否上传了文件
 if uploaded_file is not None:
-    # 读取上传的文件
-    if uploaded_file.name.endswith('.csv'):
-        data = pd.read_csv(uploaded_file,encoding="utf-8")
-    elif uploaded_file.name.endswith('.xlsx'):
-        data = pd.read_excel(uploaded_file,encoding="utf-8")
+    try:
+        if uploaded_file.name.endswith('.csv'):
+            # 尝试 UTF-8，如果失败则尝试其他编码
+            uploaded_file.seek(0)
+            try:
+                data = pd.read_csv(uploaded_file, encoding="utf-8")
+            except UnicodeDecodeError:
+                st.warning("UTF-8 解码失败，尝试 GBK 编码...")
+                uploaded_file.seek(0)
+                data = pd.read_csv(uploaded_file, encoding="gbk")
+        elif uploaded_file.name.endswith('.xlsx'):
+            # Excel 文件通常不需要指定 encoding
+            data = pd.read_excel(uploaded_file)
+    except Exception as e:
+        st.error(f"读取文件失败：{str(e)}")
+        st.stop()  # 停止执行，避免后续代码出错
+else:
+    st.warning("请上传一个包含特定信息数据的表格文件！\nPlease upload a spreadsheet file containing specific information data.")
+    st.stop()
 
 # 假设数据有三列，每列包含一个人的数据
     # 处理每个人的数据并预测
